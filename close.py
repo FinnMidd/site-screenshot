@@ -53,3 +53,4 @@ def clean_directory():
 # Run the clean_directory function
 if __name__ == "__main__":
     clean_directory()
+    print(f"\033[92mDirectory now reset!\033[0m")

@@ -3,7 +3,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import json
 import os
-from functions import clear_and_create_folders, parallel_capture_screenshots, compare_screenshots, viewports, subfolders, check_virtual_environment
+from functions import clear_and_create_folders, parallel_capture_screenshots, compare_screenshots, viewports, subfolders #? review which are needed
 
 # Define the folder paths and JSON file path
 screenshot_folder = "screenshots"
@@ -74,4 +74,4 @@ if non_matching_files:
         url = filename.replace('_', '/').replace('.png', '')
         print(f"{device} | {url} | {initial_path} | {secondary_path}")
 else:
-    print("Congratulations, all webpages match!")
+    print(f"\033[92mCongratulations, all webpages match!\033[0m")

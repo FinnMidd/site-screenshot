@@ -1,16 +1,16 @@
 import os
 import re
-import json
+import json #? review if needed
 import shutil
 import random
 import requests
 import time
 from PIL import Image, ImageChops
-import numpy as np
+import numpy as np #? review if needed
 from xml.etree import ElementTree as ET
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor #? review if needed
 from webdriver_manager.chrome import ChromeDriverManager
 import concurrent.futures
 
@@ -238,10 +238,3 @@ def parallel_capture_screenshots(urls, driver_options, folder, viewport):
             results[url] = screenshot_path
 
     return results
-
-# Function to check if a virtual environment is active
-def check_virtual_environment():
-    return (
-        hasattr(sys, 'real_prefix') or
-        (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
-    )

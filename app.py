@@ -1,5 +1,4 @@
 import argparse
-import sys
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
@@ -112,4 +111,4 @@ for entry in data:
 with open(json_file_path, 'w') as json_file:
     json.dump(data, json_file, indent=4)
 
-print("All initial screenshots now complete!")
+print(f"\033[92mAll initial screenshots now complete!\033[0m")
