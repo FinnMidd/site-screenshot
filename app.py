@@ -16,7 +16,7 @@ args = parser.parse_args()
 base_url = args.base_url
 
 # Define variable for maximum number of screenshots per child sitemap
-MAX_SCREENSHOTS_PER_CHILD_SITEMAP = 3
+MAX_SCREENSHOTS_PER_CHILD_SITEMAP = 6
 
 # Define the base folder paths
 base_screenshot_folder = "screenshots"

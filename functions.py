@@ -1,4 +1,3 @@
-import sys
 import os
 import re
 import json
@@ -11,6 +10,7 @@ import numpy as np
 from xml.etree import ElementTree as ET
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from concurrent.futures import ThreadPoolExecutor
 from webdriver_manager.chrome import ChromeDriverManager
 import concurrent.futures
 
@@ -41,14 +41,10 @@ def capture_screenshot(url, driver, folder, viewport):
     driver.set_window_size(viewport[0], viewport[1])
 
     # Allow some time for the resizing to take effect
-    time.sleep(5)  # Increase the sleep time to ensure content is fully loaded
+    time.sleep(2)
 
     # Hide the scroll bar
     driver.execute_script("document.body.style.overflow = 'hidden';")
-
-    # Scroll to the top of the page
-    driver.execute_script("window.scrollTo(0, 0);")
-    time.sleep(2)  # Allow some time for the scroll to take effect
 
     # Get the dimensions of the page
     total_width = driver.execute_script("return document.body.scrollWidth")
@@ -59,10 +55,6 @@ def capture_screenshot(url, driver, folder, viewport):
 
     # Allow some time for the resizing to take effect
     time.sleep(2)
-
-    # Scroll to the bottom of the page to ensure all content is loaded
-    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    time.sleep(2)  # Allow some time for the scrolling to take effect
 
     # Capture screenshot
     screenshot = driver.get_screenshot_as_png()
@@ -79,10 +71,21 @@ def capture_screenshot(url, driver, folder, viewport):
     image = Image.open(screenshot_path)
     image.save(screenshot_path)
 
-    # Restore scroll bar visibility
-    driver.execute_script("document.body.style.overflow = '';")
-
     return screenshot_path
+
+# Function to update the JSON data structure
+def update_json_data(data, url, title, desktop_screenshot_path, mobile_screenshot_path, tablet_screenshot_path):
+    new_entry = {
+        "title": title,
+        "url": url,
+        "initial_desktop_screenshot": desktop_screenshot_path if desktop_screenshot_path else 0,
+        "initial_mobile_screenshot": mobile_screenshot_path if mobile_screenshot_path else 0,
+        "initial_tablet_screenshot": tablet_screenshot_path if tablet_screenshot_path else 0,
+        "secondary_desktop_screenshot": 0,
+        "secondary_mobile_screenshot": 0,
+        "secondary_tablet_screenshot": 0
+    }
+    data.append(new_entry)
 
 # Function to initialize the JSON data structure
 def initialize_json_entry(url, title):
@@ -165,7 +168,61 @@ def process_sitemap(sitemap_url, driver_options, folder, max_screenshots, data, 
         print(f"The sitemap file is not present at {sitemap_url}.")
         return []
 
-# Function to run parallel browsers
+# Function to compare two images
+def compare_images(image1_path, image2_path):
+    try:
+        image1 = Image.open(image1_path)
+        image2 = Image.open(image2_path)
+
+        # Check if images are loaded correctly
+        if image1 is None or image2 is None:
+            print(f"\033[91mError loading images.\033[0m")
+            return False
+
+        # Ensure images are the same size
+        if image1.size != image2.size:
+            print(f"\033[93mImage sizes differ.\033[0m")
+            return False
+
+        # Compute the difference
+        diff = ImageChops.difference(image1, image2)
+
+        # Log difference details
+        bbox = diff.getbbox()
+        if bbox:
+            print(f"\033[91mDifference found in images.\033[0m")
+            print(f"\033[91mDifference bounding box.\033[0m")
+            diff.show()  # Show the difference for visual confirmation
+            return False
+        else:
+            print(f"\033[92mNo differences found in images.\033[0m")
+            return True
+
+    except Exception as e:
+        print(f"\033[91mError comparing images:\033[0m {e}")
+        return False
+
+# Function to compare screenshots in initial and secondary folders
+def compare_screenshots(initial_folder, secondary_folder, subfolder):
+    initial_subfolder = os.path.join(initial_folder, subfolder)
+    secondary_subfolder = os.path.join(secondary_folder, subfolder)
+    initial_files = set(os.listdir(initial_subfolder))
+    secondary_files = set(os.listdir(secondary_subfolder))
+
+    # Only compare files that are present in both folders
+    common_files = initial_files.intersection(secondary_files)
+
+    non_matching_files = []
+    for file_name in common_files:
+        initial_path = os.path.join(initial_subfolder, file_name)
+        secondary_path = os.path.join(secondary_subfolder, file_name)
+        print(f"Comparing: {initial_path} with {secondary_path}")
+        if not compare_images(initial_path, secondary_path):
+            non_matching_files.append(f"{subfolder}: {file_name}")
+
+    return non_matching_files
+
+# Function to capture screenshots in parallel
 def parallel_capture_screenshots(urls, driver_options, folder, viewport):
     def capture(url):
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=driver_options)
@@ -182,35 +239,9 @@ def parallel_capture_screenshots(urls, driver_options, folder, viewport):
 
     return results
 
-# Function to compare two images
-def compare_images(image1_path, image2_path):
-    image1 = Image.open(image1_path)
-    image2 = Image.open(image2_path)
-
-    # Compute the difference
-    diff = ImageChops.difference(image1, image2)
-
-    # If there is any difference, return False
-    if diff.getbbox():
-        return False
-
-    return True
-
-# Function to compare screenshots in initial and secondary folders
-def compare_screenshots(initial_folder, secondary_folder, subfolder):
-    initial_subfolder = os.path.join(initial_folder, subfolder)
-    secondary_subfolder = os.path.join(secondary_folder, subfolder)
-    initial_files = set(os.listdir(initial_subfolder))
-    secondary_files = set(os.listdir(secondary_subfolder))
-
-    # Only compare files that are present in both folders
-    common_files = initial_files.intersection(secondary_files)
-
-    non_matching_files = []
-    for file_name in common_files:
-        initial_path = os.path.join(initial_subfolder, file_name)
-        secondary_path = os.path.join(secondary_subfolder, file_name)
-        if not compare_images(initial_path, secondary_path):
-            non_matching_files.append(f"{subfolder}: {file_name}")
-
-    return non_matching_files
+# Function to check if a virtual environment is active
+def check_virtual_environment():
+    return (
+        hasattr(sys, 'real_prefix') or
+        (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+    )

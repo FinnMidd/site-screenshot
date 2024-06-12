@@ -3,7 +3,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import json
 import os
-from functions import clear_and_create_folders, parallel_capture_screenshots, compare_screenshots, viewports, subfolders
+from functions import clear_and_create_folders, parallel_capture_screenshots, compare_screenshots, viewports, subfolders, check_virtual_environment
 
 # Define the folder paths and JSON file path
 screenshot_folder = "screenshots"
@@ -30,7 +30,7 @@ urls_to_capture = [entry["url"] for entry in data]
 results = parallel_capture_screenshots(urls_to_capture, options, desktop_folder_path, viewport)
 for entry in data:
     url = entry["url"]
-    entry["secondary"]["google"]["desktop_screenshot"] = results[url]
+    entry["secondary_desktop_screenshot"] = results[url]
 
 # Save the updated data to the JSON file
 with open(json_file_path, 'w') as json_file:
@@ -42,7 +42,7 @@ viewport = viewports["mobile"]
 results = parallel_capture_screenshots(urls_to_capture, options, mobile_folder_path, viewport)
 for entry in data:
     url = entry["url"]
-    entry["secondary"]["google"]["mobile_screenshot"] = results[url]
+    entry["secondary_mobile_screenshot"] = results[url]
 
 # Save the updated data to the JSON file
 with open(json_file_path, 'w') as json_file:
@@ -54,7 +54,7 @@ viewport = viewports["tablet"]
 results = parallel_capture_screenshots(urls_to_capture, options, tablet_folder_path, viewport)
 for entry in data:
     url = entry["url"]
-    entry["secondary"]["google"]["tablet_screenshot"] = results[url]
+    entry["secondary_tablet_screenshot"] = results[url]
 
 # Save the updated data to the JSON file
 with open(json_file_path, 'w') as json_file:
