@@ -14,6 +14,8 @@ from concurrent.futures import ThreadPoolExecutor #? review if needed
 from webdriver_manager.chrome import ChromeDriverManager
 import concurrent.futures
 
+# ------------------------ Define variables ------------------------ #
+
 # Define subfolder names
 subfolders = ["desktop", "mobile", "tablet"]
 
@@ -23,6 +25,8 @@ viewports = {
     "desktop": (1920, 1080),
     "tablet": (768, 1024)
 }
+
+# ------------------------ Define functions ------------------------ #
 
 # Function to clear and create folders
 def clear_and_create_folders(base_folder):

@@ -1,17 +1,21 @@
 import os
 import shutil
 
+# ------------------------ Define variables ------------------------ #
+
+# Define subfolder names
+subfolders = ["desktop", "mobile", "tablet"]
+
 # Define the folder paths and JSON file path
 screenshot_folder = "screenshots"
 initial_folder = os.path.join(screenshot_folder, "initial")
 secondary_folder = os.path.join(screenshot_folder, "secondary")
 json_file_path = os.path.join(screenshot_folder, 'screenshots_data.json')
 
-# Define subfolder names
-subfolders = ["desktop", "mobile", "tablet"]
+# ------------------------ Run functions ------------------------ #
 
 # Function to clear and create subfolders
-def clear_and_create_subfolders(base_folder):
+def clear_and_create_subfolders(base_folder): #? Can I replace this with the functions.py version?
     for subfolder in subfolders:
         folder = os.path.join(base_folder, subfolder)
         if os.path.exists(folder):
@@ -20,7 +24,7 @@ def clear_and_create_subfolders(base_folder):
         print(f"Cleared the {folder} folder.")
 
 # Function to clean the directories
-def clean_directory():
+def clean_directory(): #? Can I move this to functions.py?
     # Check if the initial folder exists and delete its contents
     if os.path.exists(initial_folder):
         shutil.rmtree(initial_folder)

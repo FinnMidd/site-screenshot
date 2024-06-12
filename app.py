@@ -6,6 +6,11 @@ import json
 import os
 from functions import clear_and_create_folders, parallel_capture_screenshots, process_sitemap, viewports, initialize_json_entry
 
+# ------------------------ Define variables ------------------------ #
+
+# Define maximum amount of screenshots per child sitemap
+MAX_SCREENSHOTS_PER_CHILD_SITEMAP = 6
+
 # Set up argument parsing
 parser = argparse.ArgumentParser(description='Process some URLs.')
 parser.add_argument('base_url', type=str, nargs='?', default='https://www.jaladesign.com.au/', help='The URL you wish to process')
@@ -14,14 +19,16 @@ args = parser.parse_args()
 # Get the base URL from the arguments
 base_url = args.base_url
 
-# Define variable for maximum number of screenshots per child sitemap
-MAX_SCREENSHOTS_PER_CHILD_SITEMAP = 6
+# Initialize data storage for the JSON file
+data = []
 
 # Define the base folder paths
 base_screenshot_folder = "screenshots"
 initial_folder = os.path.join(base_screenshot_folder, "initial")
 secondary_folder = os.path.join(base_screenshot_folder, "secondary")
 json_file_path = os.path.join(base_screenshot_folder, 'screenshots_data.json')
+
+# ------------------------ Run functions ------------------------ #
 
 # Clear and create subfolders
 clear_and_create_folders(initial_folder)
@@ -34,9 +41,6 @@ with open(json_file_path, 'w') as json_file:
 # Initialize the Chrome WebDriver options with headless option
 options = webdriver.ChromeOptions()
 options.add_argument("--headless")
-
-# Initialize data storage for the JSON file
-data = []
 
 # Function to fetch the title of a webpage
 def fetch_page_title(url, options):
@@ -110,5 +114,7 @@ for entry in data:
 # Save the updated data to the JSON file
 with open(json_file_path, 'w') as json_file:
     json.dump(data, json_file, indent=4)
+
+# ------------------------ End of task ------------------------ #
 
 print(f"\033[92mAll initial screenshots now complete!\033[0m")

@@ -5,11 +5,18 @@ import json
 import os
 from functions import clear_and_create_folders, parallel_capture_screenshots, compare_screenshots, viewports, subfolders #? review which are needed
 
+# ------------------------ Define variables ------------------------ #
+
 # Define the folder paths and JSON file path
 screenshot_folder = "screenshots"
 initial_folder = os.path.join(screenshot_folder, "initial")
 secondary_folder = os.path.join(screenshot_folder, "secondary")
 json_file_path = os.path.join(screenshot_folder, 'screenshots_data.json')
+
+# Initialize array for non matching files
+non_matching_files = []
+
+# ------------------------ Run functions ------------------------ #
 
 # Clear and create secondary subfolders
 clear_and_create_folders(secondary_folder)
@@ -61,9 +68,10 @@ with open(json_file_path, 'w') as json_file:
     json.dump(data, json_file, indent=4)
 
 # Compare screenshots and print the results
-non_matching_files = []
 for subfolder in subfolders:
     non_matching_files.extend(compare_screenshots(initial_folder, secondary_folder, subfolder))
+
+# ------------------------ End of task ------------------------ #
 
 if non_matching_files:
     print("The following files do not match:")
