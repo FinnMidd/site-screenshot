@@ -175,31 +175,23 @@ def process_sitemap(sitemap_url, driver_options, folder, max_screenshots, data, 
 # Function to compare two images
 def compare_images(image1_path, image2_path):
     try:
-        image1 = Image.open(image1_path)
-        image2 = Image.open(image2_path)
-
-        # Check if images are loaded correctly
-        if image1 is None or image2 is None:
-            print(f"\033[91mError loading images.\033[0m")
-            return False
+        image1 = Image.open(image1_path).convert('RGB')
+        image2 = Image.open(image2_path).convert('RGB')
 
         # Ensure images are the same size
         if image1.size != image2.size:
-            print(f"\033[93mImage sizes differ.\033[0m")
+            print(f"\033[93mImage sizes differ: {image1.size} vs {image2.size}\033[0m")
             return False
 
         # Compute the difference
         diff = ImageChops.difference(image1, image2)
 
-        # Log difference details
-        bbox = diff.getbbox()
-        if bbox:
-            print(f"\033[91mDifference found in images.\033[0m")
-            print(f"\033[91mDifference bounding box.\033[0m")
-            diff.show()  # Show the difference for visual confirmation
+        # Check for any non-zero pixel value
+        diff_stat = diff.getbbox()
+        if diff_stat:
+            print(f"\033[91mDifference found in images: {image1_path}\033[0m")
             return False
         else:
-            print(f"\033[92mNo differences found in images.\033[0m")
             return True
 
     except Exception as e:
@@ -220,7 +212,7 @@ def compare_screenshots(initial_folder, secondary_folder, subfolder):
     for file_name in common_files:
         initial_path = os.path.join(initial_subfolder, file_name)
         secondary_path = os.path.join(secondary_subfolder, file_name)
-        print(f"Comparing: {initial_path} with {secondary_path}")
+        #print(f"Comparing: {initial_path} with {secondary_path}")
         if not compare_images(initial_path, secondary_path):
             non_matching_files.append(f"{subfolder}: {file_name}")
 
