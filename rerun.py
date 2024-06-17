@@ -74,7 +74,8 @@ for subfolder in subfolders:
 # ------------------------ End of task ------------------------ #
 
 if non_matching_files:
-    print("The following files do not match:")
+    #? Review if this output is needed
+    print(f"\033[38;5;214mThe following files do not match:\033[0m")
     for file_name in non_matching_files:
         device, filename = file_name.split(': ')
         initial_path = os.path.join(initial_folder, device, filename)

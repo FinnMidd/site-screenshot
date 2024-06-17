@@ -180,7 +180,8 @@ def compare_images(image1_path, image2_path):
 
         # Ensure images are the same size
         if image1.size != image2.size:
-            print(f"\033[93mImage sizes differ: {image1.size} vs {image2.size}\033[0m")
+            print(f"\033[93mImage size differs: {image1_path}\033[0m")
+            print(f"\033[91mDifference found in images: {image1_path}\033[0m")
             return False
 
         # Compute the difference
