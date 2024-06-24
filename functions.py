@@ -1,10 +1,10 @@
 import os
 import re
-import json #? review if needed
 import shutil
 import random
 import requests
 import time
+import json
 from PIL import Image, ImageChops
 import numpy as np #? review if needed
 from xml.etree import ElementTree as ET
@@ -36,6 +36,22 @@ def clear_and_create_folders(base_folder):
             shutil.rmtree(folder)
         os.makedirs(folder)
 
+# Function to clear JSON file
+def reset_json(json_file_path):
+    with open(json_file_path, 'w') as json_file:
+        json.dump([], json_file)
+
+# Function to hide jd-hide
+def hide_class(driver):
+    class_name = 'jd-hide'
+    script = f"""
+    var elements = document.getElementsByClassName('{class_name}');
+    for (var i = 0; i < elements.length; i++) {{
+        elements[i].style.display = 'none';
+    }}
+    """
+    driver.execute_script(script)
+
 # Function to capture screenshot
 def capture_screenshot(url, driver, folder, viewport):
     # Open the webpage
@@ -46,6 +62,9 @@ def capture_screenshot(url, driver, folder, viewport):
 
     # Allow some time for the resizing to take effect
     time.sleep(2)
+
+    # Hide class jd-hide
+    hide_class(driver)
 
     # Hide the scroll bar
     driver.execute_script("document.body.style.overflow = 'hidden';")
@@ -142,7 +161,18 @@ def initialize_json_entry(url, title):
         }
     }
 
+# Check that provided sitemap exists/is present
+def sitemap_check(base_url, sitemap_name):
+    full_url = base_url.rstrip('/') + '/' + sitemap_name.lstrip('/')
+    try:
+        response = requests.get(full_url)
+        return response.status_code == 200
+    except requests.RequestException as e:
+        print(f"An error occurred: {e}")
+        return False
+
 # Function to process sitemap and take screenshots
+#? Incorporate the sitemap_check function to check for sitemap_index & sitemap_jala
 def process_sitemap(sitemap_url, driver_options, folder, max_screenshots, data, viewport):
     response = requests.get(sitemap_url)
 

@@ -1,5 +1,6 @@
 import os
 import shutil
+from functions import reset_json
 
 # ------------------------ Define variables ------------------------ #
 
@@ -49,10 +50,8 @@ def clean_directory(): #? Can I move this to functions.py?
     # Clear and create subfolders in the secondary folder
     clear_and_create_subfolders(secondary_folder)
 
-    # Clear the JSON file
-    with open(json_file_path, 'w') as json_file:
-        json_file.write('[]')
-        print(f"Cleared the {json_file_path} file.")
+    # Clear/Create the JSON file
+    reset_json(json_file_path)
 
 # Run the clean_directory function
 if __name__ == "__main__":

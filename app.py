@@ -4,7 +4,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import json
 import os
-from functions import clear_and_create_folders, parallel_capture_screenshots, process_sitemap, viewports, initialize_json_entry
+from functions import clear_and_create_folders, parallel_capture_screenshots, process_sitemap, viewports, initialize_json_entry, reset_json
 
 # ------------------------ Define variables ------------------------ #
 
@@ -34,9 +34,8 @@ json_file_path = os.path.join(base_screenshot_folder, 'screenshots_data.json')
 clear_and_create_folders(initial_folder)
 clear_and_create_folders(secondary_folder)
 
-# Clear the JSON file
-with open(json_file_path, 'w') as json_file:
-    json.dump([], json_file)
+# Clear/Create the JSON file
+reset_json(json_file_path)
 
 # Initialize the Chrome WebDriver options with headless option
 options = webdriver.ChromeOptions()
