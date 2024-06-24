@@ -13,18 +13,7 @@ from selenium.webdriver.chrome.service import Service
 from concurrent.futures import ThreadPoolExecutor #? review if needed
 from webdriver_manager.chrome import ChromeDriverManager
 import concurrent.futures
-
-# ------------------------ Define variables ------------------------ #
-
-# Define subfolder names
-subfolders = ["desktop", "mobile", "tablet"]
-
-# Viewport sizes for mobile and desktop
-viewports = {
-    "mobile": (375, 812),
-    "desktop": (1920, 1080),
-    "tablet": (768, 1024)
-}
+from variables import subfolders, initial_folder, secondary_folder, json_file_path
 
 # ------------------------ Define functions ------------------------ #
 
@@ -40,6 +29,11 @@ def clear_and_create_folders(base_folder):
 def reset_json(json_file_path):
     with open(json_file_path, 'w') as json_file:
         json.dump([], json_file)
+
+# Function to write to JSON file
+def add_json(json_file_path, data):
+    with open(json_file_path, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
 
 # Function to hide jd-hide
 def hide_class(driver):
@@ -172,7 +166,7 @@ def sitemap_check(base_url, sitemap_name):
         return False
 
 # Function to process sitemap and take screenshots
-#? Incorporate the sitemap_check function to check for sitemap_index & sitemap_jala
+    #? Incorporate the sitemap_check function to check for sitemap_index & sitemap_jala
 def process_sitemap(sitemap_url, driver_options, folder, max_screenshots, data, viewport):
     response = requests.get(sitemap_url)
 
@@ -265,3 +259,40 @@ def parallel_capture_screenshots(urls, driver_options, folder, viewport):
             results[url] = screenshot_path
 
     return results
+
+# Function to clean the directories
+def clean_directory(): #? Can I move this to functions.py?
+    # Check if the initial folder exists and delete its contents
+    if os.path.exists(initial_folder):
+        shutil.rmtree(initial_folder)
+        os.makedirs(initial_folder)
+        print(f"Cleared the {initial_folder} folder.")
+    else:
+        os.makedirs(initial_folder)
+        print(f"Created the {initial_folder} folder.")
+
+    # Clear and create subfolders in the initial folder
+    clear_and_create_folders(initial_folder)
+
+    # Check if the secondary folder exists and delete its contents
+    if os.path.exists(secondary_folder):
+        shutil.rmtree(secondary_folder)
+        os.makedirs(secondary_folder)
+        print(f"Cleared the {secondary_folder} folder.")
+    else:
+        os.makedirs(secondary_folder)
+        print(f"Created the {secondary_folder} folder.")
+
+    # Clear and create subfolders in the secondary folder
+    clear_and_create_folders(secondary_folder)
+
+    # Clear/Create the JSON file
+    reset_json(json_file_path)
+
+# Function to fetch the title of a webpage
+def fetch_page_title(url, options):
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver.get(url)
+    title = driver.title
+    driver.quit()
+    return title

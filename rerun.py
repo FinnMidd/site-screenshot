@@ -3,23 +3,18 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import json
 import os
-from functions import clear_and_create_folders, parallel_capture_screenshots, compare_screenshots, viewports, subfolders #? review which are needed
+from variables import initial_folder, secondary_folder, json_file_path, subfolders, viewports, non_matching_files
+from functions import clear_and_create_folders, parallel_capture_screenshots, compare_screenshots #? review which are needed
 
 # ------------------------ Define variables ------------------------ #
 
-# Define the folder paths and JSON file path
-screenshot_folder = "screenshots"
-initial_folder = os.path.join(screenshot_folder, "initial")
-secondary_folder = os.path.join(screenshot_folder, "secondary")
-json_file_path = os.path.join(screenshot_folder, 'screenshots_data.json')
 
-# Initialize array for non matching files
-non_matching_files = []
+
+# ----------------------- Reset directory ----------------------- #
+
+clear_and_create_folders(secondary_folder)
 
 # ------------------------ Run functions ------------------------ #
-
-# Clear and create secondary subfolders
-clear_and_create_folders(secondary_folder)
 
 # Initialize the Chrome WebDriver options with headless option
 options = webdriver.ChromeOptions()

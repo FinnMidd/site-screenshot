@@ -4,31 +4,25 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import json
 import os
-from functions import clear_and_create_folders, parallel_capture_screenshots, process_sitemap, viewports, initialize_json_entry, reset_json
+from variables import initial_folder, secondary_folder, json_file_path, viewports, data
+from functions import clear_and_create_folders, parallel_capture_screenshots, process_sitemap, initialize_json_entry, reset_json, add_json, fetch_page_title
+
+# -------------------- Set up argument parsing --------------------- #
+
+# Initiate argument parsing
+parser = argparse.ArgumentParser(description='Process some URLs.')
+parser.add_argument('base_url', type=str, nargs='?', default='https://www.jaladesign.com.au/', help='The URL you wish to process')
+args = parser.parse_args()
 
 # ------------------------ Define variables ------------------------ #
 
 # Define maximum amount of screenshots per child sitemap
 MAX_SCREENSHOTS_PER_CHILD_SITEMAP = 6
 
-# Set up argument parsing
-parser = argparse.ArgumentParser(description='Process some URLs.')
-parser.add_argument('base_url', type=str, nargs='?', default='https://www.jaladesign.com.au/', help='The URL you wish to process')
-args = parser.parse_args()
-
 # Get the base URL from the arguments
 base_url = args.base_url
 
-# Initialize data storage for the JSON file
-data = []
-
-# Define the base folder paths
-base_screenshot_folder = "screenshots"
-initial_folder = os.path.join(base_screenshot_folder, "initial")
-secondary_folder = os.path.join(base_screenshot_folder, "secondary")
-json_file_path = os.path.join(base_screenshot_folder, 'screenshots_data.json')
-
-# ------------------------ Run functions ------------------------ #
+# ----------------------- Reset directory ----------------------- #
 
 # Clear and create subfolders
 clear_and_create_folders(initial_folder)
@@ -37,17 +31,11 @@ clear_and_create_folders(secondary_folder)
 # Clear/Create the JSON file
 reset_json(json_file_path)
 
+# ------------------------ Run functions ------------------------ #
+
 # Initialize the Chrome WebDriver options with headless option
 options = webdriver.ChromeOptions()
 options.add_argument("--headless")
-
-# Function to fetch the title of a webpage
-def fetch_page_title(url, options):
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    driver.get(url)
-    title = driver.title
-    driver.quit()
-    return title
 
 # Open the base webpage, fetch the title, and take a screenshot for desktop view
 desktop_folder_path = os.path.join(initial_folder, "desktop")
@@ -83,8 +71,7 @@ for url, screenshot_path in results.items():
         data.append(new_entry)
 
 # Save the data to a JSON file
-with open(json_file_path, 'w') as json_file:
-    json.dump(data, json_file, indent=4)
+add_json(json_file_path, data)
 
 # Rescan all sites and capture new screenshots for mobile view
 mobile_folder_path = os.path.join(initial_folder, "mobile")
@@ -97,8 +84,7 @@ for entry in data:
     entry["initial"]["google"]["mobile_screenshot"] = results[url]
 
 # Save the updated data to the JSON file
-with open(json_file_path, 'w') as json_file:
-    json.dump(data, json_file, indent=4)
+add_json(json_file_path, data)
 
 # Rescan all sites and capture new screenshots for tablet view
 tablet_folder_path = os.path.join(initial_folder, "tablet")
@@ -111,8 +97,7 @@ for entry in data:
     entry["initial"]["google"]["tablet_screenshot"] = results[url]
 
 # Save the updated data to the JSON file
-with open(json_file_path, 'w') as json_file:
-    json.dump(data, json_file, indent=4)
+add_json(json_file_path, data)
 
 # ------------------------ End of task ------------------------ #
 

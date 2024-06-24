@@ -1,16 +1,10 @@
 import os
-from functions import compare_screenshots, subfolders
+from variables import initial_folder, secondary_folder, subfolders, non_matching_files
+from functions import compare_screenshots
 
 # ------------------------ Define variables ------------------------ #
 
-# Define the folder paths and JSON file path
-screenshot_folder = "screenshots"
-initial_folder = os.path.join(screenshot_folder, "initial")
-secondary_folder = os.path.join(screenshot_folder, "secondary")
-json_file_path = os.path.join(screenshot_folder, 'screenshots_data.json')
 
-# Initialize array for non matching files
-non_matching_files = []
 
 # ------------------------ Run functions ------------------------ #
 
