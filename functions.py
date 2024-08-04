@@ -24,23 +24,13 @@ def strip_url(url):
     stripped = parsed_url.netloc
     return stripped
 
-# Function to clear and create folders
-def clear_and_create_folders(base_folder):
-    for subfolder in subfolders:
-        folder = os.path.join(base_folder, subfolder)
-        if os.path.exists(folder):
-            shutil.rmtree(folder)
-        os.makedirs(folder)
-
-# Function to clear JSON file
-def reset_json(json_file_path):
-    with open(json_file_path, 'w') as json_file:
-        json.dump([], json_file)
-
-# Function to write to JSON file
-def add_json(json_file_path, data):
-    with open(json_file_path, 'w') as json_file:
-        json.dump(data, json_file, indent=4)
+# Function to fetch the title of a webpage
+def fetch_page_title(url, options):
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver.get(url)
+    title = driver.title
+    driver.quit()
+    return title
 
 # Function to hide jd-hide
 def hide_class(driver):
@@ -52,6 +42,88 @@ def hide_class(driver):
     }}
     """
     driver.execute_script(script)
+
+# ------------------------ Folder functions ------------------------ #
+
+# Function to clear and create folders
+def clear_and_create_folders(base_folder):
+    for subfolder in subfolders:
+        folder = os.path.join(base_folder, subfolder)
+        if os.path.exists(folder):
+            shutil.rmtree(folder)
+        os.makedirs(folder)
+
+# Function to clean the directories
+def clean_directory():
+    # Check if the initial folder exists and delete its contents
+    if os.path.exists(initial_folder):
+        shutil.rmtree(initial_folder)
+        os.makedirs(initial_folder)
+        print(f"Cleared the {initial_folder} folder.")
+    else:
+        os.makedirs(initial_folder)
+        print(f"Created the {initial_folder} folder.")
+
+    # Clear and create subfolders in the initial folder
+    clear_and_create_folders(initial_folder)
+
+    # Check if the secondary folder exists and delete its contents
+    if os.path.exists(secondary_folder):
+        shutil.rmtree(secondary_folder)
+        os.makedirs(secondary_folder)
+        print(f"Cleared the {secondary_folder} folder.")
+    else:
+        os.makedirs(secondary_folder)
+        print(f"Created the {secondary_folder} folder.")
+
+    # Clear and create subfolders in the secondary folder
+    clear_and_create_folders(secondary_folder)
+
+    # Clear/Create the JSON file
+    reset_json(json_file_path)
+
+# ------------------------ JSON functions ------------------------ #
+
+# Function to update the JSON data structure
+def update_json_data(data, url, title, desktop_screenshot_path, mobile_screenshot_path, tablet_screenshot_path):
+    new_entry = {
+        "title": title,
+        "url": url,
+        "initial_desktop_screenshot": desktop_screenshot_path if desktop_screenshot_path else 0,
+        "initial_mobile_screenshot": mobile_screenshot_path if mobile_screenshot_path else 0,
+        "initial_tablet_screenshot": tablet_screenshot_path if tablet_screenshot_path else 0,
+        "secondary_desktop_screenshot": 0,
+        "secondary_mobile_screenshot": 0,
+        "secondary_tablet_screenshot": 0
+    }
+    data.append(new_entry)
+
+# Function to initialize the JSON data structure
+def initialize_json_entry(url, title):
+    entry = {
+        "title": title,
+        "url": url,
+        "initial": {"google": {}},
+        "secondary": {"google": {}}
+    }
+    
+    for device in viewports.keys():
+        entry["initial"]["google"][f"{device}_screenshot"] = None
+        entry["secondary"]["google"][f"{device}_screenshot"] = None
+    
+    return entry
+
+# Function to clear JSON file
+def reset_json(json_file_path):
+    with open(json_file_path, 'w') as json_file:
+        json.dump([], json_file)
+
+# Function to write to JSON file
+def add_json(json_file_path, data):
+    with open(json_file_path, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
+
+# ------------------------ Screenshot functions ------------------------ #
 
 # Function to capture screenshot
 def capture_screenshot(url, driver, folder, viewport):
@@ -97,34 +169,24 @@ def capture_screenshot(url, driver, folder, viewport):
 
     return screenshot_path
 
-# Function to update the JSON data structure
-def update_json_data(data, url, title, desktop_screenshot_path, mobile_screenshot_path, tablet_screenshot_path):
-    new_entry = {
-        "title": title,
-        "url": url,
-        "initial_desktop_screenshot": desktop_screenshot_path if desktop_screenshot_path else 0,
-        "initial_mobile_screenshot": mobile_screenshot_path if mobile_screenshot_path else 0,
-        "initial_tablet_screenshot": tablet_screenshot_path if tablet_screenshot_path else 0,
-        "secondary_desktop_screenshot": 0,
-        "secondary_mobile_screenshot": 0,
-        "secondary_tablet_screenshot": 0
-    }
-    data.append(new_entry)
+# Function to capture screenshots in parallel
+def parallel_capture_screenshots(urls, driver_options, folder, viewport):
+    def capture(url):
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=driver_options)
+        screenshot_path = capture_screenshot(url, driver, folder, viewport)
+        driver.quit()
+        return url, screenshot_path
 
-# Function to initialize the JSON data structure
-def initialize_json_entry(url, title):
-    entry = {
-        "title": title,
-        "url": url,
-        "initial": {"google": {}},
-        "secondary": {"google": {}}
-    }
-    
-    for device in viewports.keys():
-        entry["initial"]["google"][f"{device}_screenshot"] = None
-        entry["secondary"]["google"][f"{device}_screenshot"] = None
-    
-    return entry
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers based on your system's capacity
+        future_to_url = {executor.submit(capture, url): url for url in urls}
+        for future in concurrent.futures.as_completed(future_to_url):
+            url, screenshot_path = future.result()
+            results[url] = screenshot_path
+
+    return results
+
+# ------------------------ Sitemap functions ------------------------ #
 
 # Check that provided sitemap exists/is present
 def sitemap_check(base_url, sitemap_name):
@@ -166,6 +228,8 @@ def process_sitemap(sitemap_url, driver_options, folder, max_screenshots, data, 
     else:
         print(f"The sitemap file is not present at {sitemap_url}.")
         return []
+    
+# ------------------------ Comparison functions ------------------------ #
 
 # Function to compare two images
 def compare_images(image1_path, image2_path):
@@ -213,57 +277,3 @@ def compare_screenshots(initial_folder, secondary_folder, subfolder):
             non_matching_files.append(f"{subfolder}: {file_name}")
 
     return non_matching_files
-
-# Function to capture screenshots in parallel
-def parallel_capture_screenshots(urls, driver_options, folder, viewport):
-    def capture(url):
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=driver_options)
-        screenshot_path = capture_screenshot(url, driver, folder, viewport)
-        driver.quit()
-        return url, screenshot_path
-
-    results = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers based on your system's capacity
-        future_to_url = {executor.submit(capture, url): url for url in urls}
-        for future in concurrent.futures.as_completed(future_to_url):
-            url, screenshot_path = future.result()
-            results[url] = screenshot_path
-
-    return results
-
-# Function to clean the directories
-def clean_directory():
-    # Check if the initial folder exists and delete its contents
-    if os.path.exists(initial_folder):
-        shutil.rmtree(initial_folder)
-        os.makedirs(initial_folder)
-        print(f"Cleared the {initial_folder} folder.")
-    else:
-        os.makedirs(initial_folder)
-        print(f"Created the {initial_folder} folder.")
-
-    # Clear and create subfolders in the initial folder
-    clear_and_create_folders(initial_folder)
-
-    # Check if the secondary folder exists and delete its contents
-    if os.path.exists(secondary_folder):
-        shutil.rmtree(secondary_folder)
-        os.makedirs(secondary_folder)
-        print(f"Cleared the {secondary_folder} folder.")
-    else:
-        os.makedirs(secondary_folder)
-        print(f"Created the {secondary_folder} folder.")
-
-    # Clear and create subfolders in the secondary folder
-    clear_and_create_folders(secondary_folder)
-
-    # Clear/Create the JSON file
-    reset_json(json_file_path)
-
-# Function to fetch the title of a webpage
-def fetch_page_title(url, options):
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    driver.get(url)
-    title = driver.title
-    driver.quit()
-    return title
