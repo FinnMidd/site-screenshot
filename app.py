@@ -1,3 +1,4 @@
+import time
 import argparse
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -32,6 +33,9 @@ clear_and_create_folders(secondary_folder)
 reset_json(json_file_path)
 
 # ------------------------ Run functions ------------------------ #
+
+# Start the timer
+start_time = time.time()
 
 # Initialize the Chrome WebDriver options with headless option
 options = webdriver.ChromeOptions()
@@ -101,4 +105,20 @@ add_json(json_file_path, data)
 
 # ------------------------ End of task ------------------------ #
 
+# Stop the timer
+end_time = time.time()
+
+# Calculate the elapsed time
+elapsed_time = end_time - start_time
+
+# Convert elapsed time to minutes and seconds
+minutes, seconds = divmod(elapsed_time, 60)
+
+# Print the elapsed time in minutes and seconds
+if minutes > 0:
+    print(f"Time taken to complete the script: {int(minutes)} minutes and {seconds:.2f} seconds")
+else:
+    print(f"Time taken to complete the script: {seconds:.2f} seconds")
+
+# Print completion message
 print(f"\033[92mAll initial screenshots now complete!\033[0m")
