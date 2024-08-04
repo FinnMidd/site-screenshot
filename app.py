@@ -5,11 +5,11 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import json
 import os
-from variables import initial_folder, secondary_folder, json_file_path, viewports, data
+from variables import initial_folder, secondary_folder, json_file_path, viewports, data, subfolders
 from functions import clear_and_create_folders, parallel_capture_screenshots, process_sitemap, initialize_json_entry, reset_json, add_json, fetch_page_title
 
 if __name__ == "__main__":
-    
+
     # -------------------- Set up argument parsing --------------------- #
 
     # Initiate argument parsing
@@ -43,67 +43,39 @@ if __name__ == "__main__":
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
 
-    # Open the base webpage, fetch the title, and take a screenshot for desktop view
-    desktop_folder_path = os.path.join(initial_folder, "desktop")
-    viewport = viewports["desktop"]
-    print(f"Taking screenshot of {base_url} for desktop view")
+    # Process base URL for each viewport
+    for device, viewport in viewports.items():
+        folder_path = os.path.join(initial_folder, device)
+        print(f"Taking screenshot of {base_url} for {device} view")
 
-    # Capture base URL screenshot
-    results = parallel_capture_screenshots([base_url], options, desktop_folder_path, viewport)
-    desktop_screenshot_path = results[base_url]
+        results = parallel_capture_screenshots([base_url], options, folder_path, viewport)
+        screenshot_path = results[base_url]
 
-    # Fetch the title of the base URL
-    base_title = fetch_page_title(base_url, options)
+        if not data:  # If data is empty, initialize it with base URL
+            base_title = fetch_page_title(base_url, options)
+            entry = initialize_json_entry(base_url, base_title)
+            data.append(entry)
 
-    entry = initialize_json_entry(base_url, base_title)
-    entry["initial"]["google"]["desktop_screenshot"] = desktop_screenshot_path
-    data.append(entry)
+        data[0]["initial"]["google"][f"{device}_screenshot"] = screenshot_path
 
-    # Check for the base sitemap and process it for desktop view
+    # Process sitemap for each viewport
     sitemap_url = base_url + "sitemap_index.xml"
-    urls_to_capture = process_sitemap(sitemap_url, options, desktop_folder_path, MAX_SCREENSHOTS_PER_CHILD_SITEMAP, data, viewport)
+    for device, viewport in viewports.items():
+        folder_path = os.path.join(initial_folder, device)
+        urls_to_capture = process_sitemap(sitemap_url, options, folder_path, MAX_SCREENSHOTS_PER_CHILD_SITEMAP, data, viewport)
 
-    # Capture additional screenshots in parallel
-    results = parallel_capture_screenshots(urls_to_capture, options, desktop_folder_path, viewport)
-    for url, screenshot_path in results.items():
-        entry = next((item for item in data if item['url'] == url), None)
-        if entry:
-            entry["initial"]["google"]["desktop_screenshot"] = screenshot_path
-        else:
-            # Fetch the title for the new page
-            page_title = fetch_page_title(url, options)
-            new_entry = initialize_json_entry(url, page_title)
-            new_entry["initial"]["google"]["desktop_screenshot"] = screenshot_path
-            data.append(new_entry)
+        results = parallel_capture_screenshots(urls_to_capture, options, folder_path, viewport)
+        for url, screenshot_path in results.items():
+            entry = next((item for item in data if item['url'] == url), None)
+            if entry:
+                entry["initial"]["google"][f"{device}_screenshot"] = screenshot_path
+            else:
+                page_title = fetch_page_title(url, options)
+                new_entry = initialize_json_entry(url, page_title)
+                new_entry["initial"]["google"][f"{device}_screenshot"] = screenshot_path
+                data.append(new_entry)
 
-    # Save the data to a JSON file
-    add_json(json_file_path, data)
-
-    # Rescan all sites and capture new screenshots for mobile view
-    mobile_folder_path = os.path.join(initial_folder, "mobile")
-    viewport = viewports["mobile"]
-    urls_to_capture = [entry["url"] for entry in data]
-
-    results = parallel_capture_screenshots(urls_to_capture, options, mobile_folder_path, viewport)
-    for entry in data:
-        url = entry["url"]
-        entry["initial"]["google"]["mobile_screenshot"] = results[url]
-
-    # Save the updated data to the JSON file
-    add_json(json_file_path, data)
-
-    # Rescan all sites and capture new screenshots for tablet view
-    tablet_folder_path = os.path.join(initial_folder, "tablet")
-    viewport = viewports["tablet"]
-    urls_to_capture = [entry["url"] for entry in data]
-
-    results = parallel_capture_screenshots(urls_to_capture, options, tablet_folder_path, viewport)
-    for entry in data:
-        url = entry["url"]
-        entry["initial"]["google"]["tablet_screenshot"] = results[url]
-
-    # Save the updated data to the JSON file
-    add_json(json_file_path, data)
+        add_json(json_file_path, data)
 
     # ------------------------ End of task ------------------------ #
 

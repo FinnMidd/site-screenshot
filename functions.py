@@ -5,6 +5,7 @@ import random
 import requests
 import time
 import json
+from urllib.parse import urlparse
 from PIL import Image, ImageChops
 import numpy as np #? review if needed
 from xml.etree import ElementTree as ET
@@ -13,9 +14,15 @@ from selenium.webdriver.chrome.service import Service
 from concurrent.futures import ThreadPoolExecutor #? review if needed
 from webdriver_manager.chrome import ChromeDriverManager
 import concurrent.futures
-from variables import subfolders, initial_folder, secondary_folder, json_file_path
+from variables import subfolders, initial_folder, secondary_folder, json_file_path, viewports
 
 # ------------------------ Define functions ------------------------ #
+
+# Function to strip urls of formatting
+def strip_url(url):
+    parsed_url = urlparse(url)
+    stripped = parsed_url.netloc
+    return stripped
 
 # Function to clear and create folders
 def clear_and_create_folders(base_folder):
@@ -106,54 +113,18 @@ def update_json_data(data, url, title, desktop_screenshot_path, mobile_screensho
 
 # Function to initialize the JSON data structure
 def initialize_json_entry(url, title):
-    return {
+    entry = {
         "title": title,
         "url": url,
-        "initial": {
-            "google": {
-                "desktop_screenshot": None,
-                "tablet_screenshot": None,
-                "mobile_screenshot": None
-            },
-            "firefox": {
-                "desktop_screenshot": None,
-                "tablet_screenshot": None,
-                "mobile_screenshot": None
-            },
-            "edge": {
-                "desktop_screenshot": None,
-                "tablet_screenshot": None,
-                "mobile_screenshot": None
-            },
-            "safari": {
-                "desktop_screenshot": None,
-                "tablet_screenshot": None,
-                "mobile_screenshot": None
-            }
-        },
-        "secondary": {
-            "google": {
-                "desktop_screenshot": None,
-                "tablet_screenshot": None,
-                "mobile_screenshot": None
-            },
-            "firefox": {
-                "desktop_screenshot": None,
-                "tablet_screenshot": None,
-                "mobile_screenshot": None
-            },
-            "edge": {
-                "desktop_screenshot": None,
-                "tablet_screenshot": None,
-                "mobile_screenshot": None
-            },
-            "safari": {
-                "desktop_screenshot": None,
-                "tablet_screenshot": None,
-                "mobile_screenshot": None
-            }
-        }
+        "initial": {"google": {}},
+        "secondary": {"google": {}}
     }
+    
+    for device in viewports.keys():
+        entry["initial"]["google"][f"{device}_screenshot"] = None
+        entry["secondary"]["google"][f"{device}_screenshot"] = None
+    
+    return entry
 
 # Check that provided sitemap exists/is present
 def sitemap_check(base_url, sitemap_name):
@@ -166,7 +137,7 @@ def sitemap_check(base_url, sitemap_name):
         return False
 
 # Function to process sitemap and take screenshots
-    #? Incorporate the sitemap_check function to check for sitemap_index & sitemap_jala
+#? Incorporate the sitemap_check function to check for sitemap_index
 def process_sitemap(sitemap_url, driver_options, folder, max_screenshots, data, viewport):
     response = requests.get(sitemap_url)
 
@@ -261,7 +232,7 @@ def parallel_capture_screenshots(urls, driver_options, folder, viewport):
     return results
 
 # Function to clean the directories
-def clean_directory(): #? Can I move this to functions.py?
+def clean_directory():
     # Check if the initial folder exists and delete its contents
     if os.path.exists(initial_folder):
         shutil.rmtree(initial_folder)

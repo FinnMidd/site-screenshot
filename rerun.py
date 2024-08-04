@@ -1,3 +1,4 @@
+import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
@@ -16,6 +17,9 @@ clear_and_create_folders(secondary_folder)
 
 # ------------------------ Run functions ------------------------ #
 
+# Start the timer
+start_time = time.time()
+
 # Initialize the Chrome WebDriver options with headless option
 options = webdriver.ChromeOptions()
 options.add_argument("--headless")
@@ -24,49 +28,46 @@ options.add_argument("--headless")
 with open(json_file_path, 'r') as json_file:
     data = json.load(json_file)
 
-# Rescan all sites and capture new screenshots for desktop view
-desktop_folder_path = os.path.join(secondary_folder, "desktop")
-viewport = viewports["desktop"]
+# Get all URLs to capture
 urls_to_capture = [entry["url"] for entry in data]
 
-results = parallel_capture_screenshots(urls_to_capture, options, desktop_folder_path, viewport)
-for entry in data:
-    url = entry["url"]
-    entry["secondary_desktop_screenshot"] = results[url]
+# Capture screenshots for each viewport
+for device, viewport in viewports.items():
+    folder_path = os.path.join(secondary_folder, device)
+    print(f"Capturing screenshots for {device} view")
 
-# Save the updated data to the JSON file
-with open(json_file_path, 'w') as json_file:
-    json.dump(data, json_file, indent=4)
+    results = parallel_capture_screenshots(urls_to_capture, options, folder_path, viewport)
+    
+    for entry in data:
+        url = entry["url"]
+        entry["secondary"]["google"][f"{device}_screenshot"] = results[url]
 
-# Rescan all sites and capture new screenshots for mobile view
-mobile_folder_path = os.path.join(secondary_folder, "mobile")
-viewport = viewports["mobile"]
-results = parallel_capture_screenshots(urls_to_capture, options, mobile_folder_path, viewport)
-for entry in data:
-    url = entry["url"]
-    entry["secondary_mobile_screenshot"] = results[url]
-
-# Save the updated data to the JSON file
-with open(json_file_path, 'w') as json_file:
-    json.dump(data, json_file, indent=4)
-
-# Rescan all sites and capture new screenshots for tablet view
-tablet_folder_path = os.path.join(secondary_folder, "tablet")
-viewport = viewports["tablet"]
-results = parallel_capture_screenshots(urls_to_capture, options, tablet_folder_path, viewport)
-for entry in data:
-    url = entry["url"]
-    entry["secondary_tablet_screenshot"] = results[url]
-
-# Save the updated data to the JSON file
-with open(json_file_path, 'w') as json_file:
-    json.dump(data, json_file, indent=4)
+    # Save the updated data to the JSON file after each viewport
+    with open(json_file_path, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
 
 # Compare screenshots and print the results
-for subfolder in subfolders:
-    non_matching_files.extend(compare_screenshots(initial_folder, secondary_folder, subfolder))
+for device in viewports.keys():
+    non_matching_files.extend(compare_screenshots(os.path.join("screenshots", "initial"), 
+                                                  os.path.join("screenshots", "secondary"), 
+                                                  device))
 
 # ------------------------ End of task ------------------------ #
+
+# Stop the timer
+end_time = time.time()
+
+# Calculate the elapsed time
+elapsed_time = end_time - start_time
+
+# Convert elapsed time to minutes and seconds
+minutes, seconds = divmod(elapsed_time, 60)
+
+# Print the elapsed time in minutes and seconds
+if minutes > 0:
+    print(f"Time taken to complete the script: {int(minutes)} minutes and {seconds:.2f} seconds")
+else:
+    print(f"Time taken to complete the script: {seconds:.2f} seconds")
 
 if non_matching_files:
     #? Review if this output is needed
