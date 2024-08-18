@@ -1,0 +1,25 @@
+{
+    "sites": [
+      {
+        "main_url": "www.jaladesign.com.au",
+        "children": [
+          "/team",
+          "/services",
+          "/contact"
+        ]
+      },
+      {
+        "main_url": "www.example.com",
+        "children": [
+          "/products",
+          "/blog",
+          "/support"
+        ]
+      }
+    ],
+    "global_pages": [
+      "/privacy-policy",
+      "/terms-of-service",
+      "/sitemap"
+    ]
+  }

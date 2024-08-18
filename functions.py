@@ -123,6 +123,68 @@ def add_json(json_file_path, data):
     with open(json_file_path, 'w') as json_file:
         json.dump(data, json_file, indent=4)
 
+# ------------------------ Sitemap functions ------------------------ #
+
+def load_site_and_children(file_path, selected_url):
+    # Strip the selected URL for comparison
+    selected_url = strip_url(selected_url)
+
+    # Load the JSON file
+    with open(file_path, 'r') as file:
+        sites_data = json.load(file)
+    
+    # Find the selected site and build the array
+    for site in sites_data['sites']:
+        if strip_url(site['main_url']) == selected_url:
+            # Create the array with the main URL and its children
+            urls_to_check = [site['main_url']] + [f"{site['main_url']}{child}" for child in site['children']]
+            return urls_to_check
+    
+    # If the selected URL is not found, print error message and return an empty array
+    print(f"Error: The URL '{selected_url}' was not found in the JSON file.")
+    return []
+
+# Check that provided sitemap exists/is present
+def sitemap_check(base_url, sitemap_name):
+    full_url = base_url.rstrip('/') + '/' + sitemap_name.lstrip('/')
+    try:
+        response = requests.get(full_url)
+        return response.status_code == 200
+    except requests.RequestException as e:
+        print(f"An error occurred: {e}")
+        return False
+
+# Function to process sitemap and take screenshots
+#? Incorporate the sitemap_check function to check for sitemap_index
+def process_sitemap(sitemap_url, driver_options, folder, max_screenshots, data, viewport):
+    response = requests.get(sitemap_url)
+
+    if response.status_code == 200:
+        print(f"The sitemap file is present at {sitemap_url}.")
+
+        # Parse the sitemap XML
+        root = ET.fromstring(response.content)
+
+        # Extract all loc elements
+        loc_elements = [loc.text for loc in root.iter('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')]
+
+        # Randomly select up to max_screenshots loc elements
+        selected_locs = random.sample(loc_elements, min(len(loc_elements), max_screenshots))
+
+        urls = []
+        for page_url in selected_locs:
+            if page_url.endswith('.xml'):
+                # If the URL is another XML file, process it recursively
+                print(f"Found nested sitemap: {page_url}")
+                urls.extend(process_sitemap(page_url, driver_options, folder, max_screenshots, data, viewport))
+            else:
+                urls.append(page_url)
+
+        return urls
+    else:
+        print(f"The sitemap file is not present at {sitemap_url}.")
+        return []
+
 # ------------------------ Screenshot functions ------------------------ #
 
 # Function to capture screenshot
@@ -185,49 +247,6 @@ def parallel_capture_screenshots(urls, driver_options, folder, viewport):
             results[url] = screenshot_path
 
     return results
-
-# ------------------------ Sitemap functions ------------------------ #
-
-# Check that provided sitemap exists/is present
-def sitemap_check(base_url, sitemap_name):
-    full_url = base_url.rstrip('/') + '/' + sitemap_name.lstrip('/')
-    try:
-        response = requests.get(full_url)
-        return response.status_code == 200
-    except requests.RequestException as e:
-        print(f"An error occurred: {e}")
-        return False
-
-# Function to process sitemap and take screenshots
-#? Incorporate the sitemap_check function to check for sitemap_index
-def process_sitemap(sitemap_url, driver_options, folder, max_screenshots, data, viewport):
-    response = requests.get(sitemap_url)
-
-    if response.status_code == 200:
-        print(f"The sitemap file is present at {sitemap_url}.")
-
-        # Parse the sitemap XML
-        root = ET.fromstring(response.content)
-
-        # Extract all loc elements
-        loc_elements = [loc.text for loc in root.iter('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')]
-
-        # Randomly select up to max_screenshots loc elements
-        selected_locs = random.sample(loc_elements, min(len(loc_elements), max_screenshots))
-
-        urls = []
-        for page_url in selected_locs:
-            if page_url.endswith('.xml'):
-                # If the URL is another XML file, process it recursively
-                print(f"Found nested sitemap: {page_url}")
-                urls.extend(process_sitemap(page_url, driver_options, folder, max_screenshots, data, viewport))
-            else:
-                urls.append(page_url)
-
-        return urls
-    else:
-        print(f"The sitemap file is not present at {sitemap_url}.")
-        return []
     
 # ------------------------ Comparison functions ------------------------ #
 
