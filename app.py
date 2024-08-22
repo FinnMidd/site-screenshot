@@ -2,7 +2,7 @@ import time
 import argparse
 from selenium import webdriver
 import os
-from variables import initial_folder, secondary_folder, json_file_path, viewports, data
+from variables import initial_folder, secondary_folder, diffs_folder, json_file_path, viewports, data
 from functions import clear_and_create_folders, parallel_capture_screenshots, process_sitemap, initialize_json_entry, reset_json, add_json, fetch_page_title
 
 if __name__ == "__main__":
@@ -27,6 +27,8 @@ if __name__ == "__main__":
     # Clear and create subfolders
     clear_and_create_folders(initial_folder)
     clear_and_create_folders(secondary_folder)
+    clear_and_create_folders(diffs_folder)
+
 
     # Clear/Create the JSON file
     reset_json(json_file_path)
