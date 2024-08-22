@@ -1,12 +1,22 @@
 import os
-from settings import use_desktop, use_tablet, use_mobile
 
-# ------------------------ Define variables ------------------------ #
+# ------------------------ Define Settings ------------------------ #
+
+use_desktop = 1
+use_tablet = 0
+use_mobile = 0
+
+# WIP
+use_ui = 0
+use_sitemap = 0
+
+# ------------------------ Define Variables ------------------------ #
 
 # Define the base folder paths
 base_screenshot_folder = "screenshots"
 initial_folder = os.path.join(base_screenshot_folder, "initial")
 secondary_folder = os.path.join(base_screenshot_folder, "secondary")
+diffs_folder = os.path.join(base_screenshot_folder, "diffs")
 json_file_path = os.path.join(base_screenshot_folder, 'screenshots_data.json')
 
 # Update subfolders based on settings
