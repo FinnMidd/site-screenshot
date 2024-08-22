@@ -3,3 +3,5 @@ webdriver-manager
 Pillow
 requests
 numpy
+scikit-image
+opencv-python
