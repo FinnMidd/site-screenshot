@@ -89,4 +89,5 @@ Thumbs.db
 
 # Specific to your project
 screenshots/
+screenshots_data.json
 *.log
