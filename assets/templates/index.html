@@ -1,0 +1,22 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot Comparison App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Screenshot Comparison App</h1>
+        <form id="captureForm">
+            <input type="text" id="urlInput" placeholder="Enter URL" required>
+            <button type="submit">Capture Screenshots</button>
+        </form>
+        <button id="compareButton">Compare Screenshots</button>
+        <div id="results"></div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
