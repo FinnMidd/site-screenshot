@@ -15,7 +15,7 @@ import concurrent.futures
 from webdriver_manager.chrome import ChromeDriverManager
 from skimage.metrics import structural_similarity
 import cv2
-from variables import subfolders, initial_folder, secondary_folder, json_file_path, viewports
+from variables import subfolders, initial_folder, secondary_folder, diffs_folder, json_file_path, viewports
 
 # ------------------------ Define functions ------------------------ #
 
@@ -46,39 +46,33 @@ def hide_class(driver):
 
 # ------------------------ Folder functions ------------------------ #
 
+# Helper function to clear and create a folder
+def reset_folder(folder):
+    if os.path.exists(folder):
+        shutil.rmtree(folder)
+    os.makedirs(folder)
+
 # Function to clear and create folders
 def clear_and_create_folders(base_folder):
     for subfolder in subfolders:
         folder = os.path.join(base_folder, subfolder)
-        if os.path.exists(folder):
-            shutil.rmtree(folder)
-        os.makedirs(folder)
+        reset_folder(folder)
 
 # Function to clean the directories
 def clean_directory():
-    # Check if the initial folder exists and delete its contents
-    if os.path.exists(initial_folder):
-        shutil.rmtree(initial_folder)
-        os.makedirs(initial_folder)
-        print(f"Cleared the {initial_folder} folder.")
-    else:
-        os.makedirs(initial_folder)
-        print(f"Created the {initial_folder} folder.")
-
-    # Clear and create subfolders in the initial folder
+    # Clear and create the initial folder and its subfolders
+    reset_folder(initial_folder)
+    print(f"Cleared/Created the {initial_folder} folder.")
     clear_and_create_folders(initial_folder)
 
-    # Check if the secondary folder exists and delete its contents
-    if os.path.exists(secondary_folder):
-        shutil.rmtree(secondary_folder)
-        os.makedirs(secondary_folder)
-        print(f"Cleared the {secondary_folder} folder.")
-    else:
-        os.makedirs(secondary_folder)
-        print(f"Created the {secondary_folder} folder.")
-
-    # Clear and create subfolders in the secondary folder
+    # Clear and create the secondary folder and its subfolders
+    reset_folder(secondary_folder)
+    print(f"Cleared/Created the {secondary_folder} folder.")
     clear_and_create_folders(secondary_folder)
+
+    # Clear and create the secondary folder and its subfolders
+    reset_folder(diffs_folder)
+    print(f"Cleared/Created the {diffs_folder} folder.")
 
     # Clear/Create the JSON file
     reset_json(json_file_path)
@@ -258,6 +252,10 @@ def compare_images(image1_path, image2_path):
         image1 = cv2.imread(image1_path)
         image2 = cv2.imread(image2_path)
 
+        # Create 'diffs' folder in the correct location (screenshots folder)
+        diffs_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(image1_path))), 'diffs')
+        os.makedirs(diffs_folder, exist_ok=True)
+
         # Check if images have the same dimensions
         if image1.shape == image2.shape:
             # Use SSIM method
@@ -273,15 +271,17 @@ def compare_images(image1_path, image2_path):
             contours = contours[0] if len(contours) == 2 else contours[1]
 
             image_with_differences = image1.copy()
+            has_significant_diff = False
 
             for c in contours:
                 area = cv2.contourArea(c)
                 if area > 40:  # Adjust this threshold as needed
                     x, y, w, h = cv2.boundingRect(c)
                     cv2.rectangle(image_with_differences, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    has_significant_diff = True
 
             method = "SSIM"
-            threshold = 0.95  # Adjust this threshold as needed
+            threshold = 1  # Adjust this threshold as needed
 
         else:
             # Use cv2.absdiff method
@@ -294,20 +294,30 @@ def compare_images(image1_path, image2_path):
             gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
 
             diff = cv2.absdiff(gray1, gray2)
-            image_with_differences = 255 - diff
+            
+            # Create a color image to highlight differences
+            image_with_differences = cv2.cvtColor(image1, cv2.COLOR_BGR2RGB)
+            
+            # Highlight differences in red
+            diff_mask = diff > 30  # Adjust the threshold (30) as needed
+            image_with_differences[diff_mask] = [255, 0, 0]
+            
+            has_significant_diff = np.any(diff_mask)
             
             # Calculate a simple similarity score based on mean pixel difference
             score = 1 - (np.mean(diff) / 255)
             print(f"Similarity score: {score:.4f}")
 
             method = "absdiff"
-            threshold = 0.8  # Adjust this threshold as needed
+            threshold = 1  # Adjust this threshold as needed
 
-        # Save the image with differences highlighted
-        difference_image_path = image1_path.replace('.png', f'_diff_{method}.png')
-        cv2.imwrite(difference_image_path, image_with_differences)
+        difference_image_path = None
+        if score < threshold and has_significant_diff:
+            # Save the image with differences highlighted only if there are significant differences
+            diff_filename = os.path.basename(image1_path).replace('.png', f'_diff_{method}.png')
+            difference_image_path = os.path.join(diffs_folder, diff_filename)
+            cv2.imwrite(difference_image_path, image_with_differences)
 
-        if score < threshold:
             print(f"\033[91mDifference found in images: {image1_path}\033[0m")
             print(f"Difference image saved as: {difference_image_path}")
             return False, difference_image_path, method, score
