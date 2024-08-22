@@ -4,8 +4,8 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import json
 import os
-from variables import initial_folder, secondary_folder, json_file_path, subfolders, viewports, non_matching_files
-from functions import clear_and_create_folders, parallel_capture_screenshots, compare_screenshots #? review which are needed
+from variables import initial_folder, secondary_folder, json_file_path, viewports, non_matching_files
+from functions import clear_and_create_folders, parallel_capture_screenshots, compare_screenshots
 
 # ------------------------ Define variables ------------------------ #
 
@@ -49,8 +49,8 @@ for device, viewport in viewports.items():
 # Compare screenshots and print the results
 for device in viewports.keys():
     non_matching_files.extend(compare_screenshots(os.path.join("screenshots", "initial"), 
-                                                  os.path.join("screenshots", "secondary"), 
-                                                  device))
+                                                os.path.join("screenshots", "secondary"), 
+                                                device))
 
 # ------------------------ End of task ------------------------ #
 
@@ -70,13 +70,17 @@ else:
     print(f"Time taken to complete the script: {seconds:.2f} seconds")
 
 if non_matching_files:
-    #? Review if this output is needed
     print(f"\033[38;5;214mThe following files do not match:\033[0m")
-    for file_name in non_matching_files:
-        device, filename = file_name.split(': ')
+    for file_info in non_matching_files:
+        device_filename, diff_path, method, score = file_info
+        device, filename = device_filename.split(': ')
         initial_path = os.path.join(initial_folder, device, filename)
         secondary_path = os.path.join(secondary_folder, device, filename)
         url = filename.replace('_', '/').replace('.png', '')
         print(f"{device} | {url} | {initial_path} | {secondary_path}")
+        print(f"Comparison method: {method}")
+        print(f"Similarity score: {score:.4f}")
+        print(f"Difference image: {diff_path}")
+        print("---")
 else:
     print(f"\033[92mCongratulations, all webpages match!\033[0m")

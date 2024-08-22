@@ -1,11 +1,8 @@
 import time
 import argparse
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-import json
 import os
-from variables import initial_folder, secondary_folder, json_file_path, viewports, data, subfolders
+from variables import initial_folder, secondary_folder, json_file_path, viewports, data
 from functions import clear_and_create_folders, parallel_capture_screenshots, process_sitemap, initialize_json_entry, reset_json, add_json, fetch_page_title
 
 if __name__ == "__main__":

@@ -6,14 +6,15 @@ import requests
 import time
 import json
 from urllib.parse import urlparse
-from PIL import Image, ImageChops
-import numpy as np #? review if needed
+from PIL import Image
+import numpy as np
 from xml.etree import ElementTree as ET
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from concurrent.futures import ThreadPoolExecutor #? review if needed
-from webdriver_manager.chrome import ChromeDriverManager
 import concurrent.futures
+from webdriver_manager.chrome import ChromeDriverManager
+from skimage.metrics import structural_similarity
+import cv2
 from variables import subfolders, initial_folder, secondary_folder, json_file_path, viewports
 
 # ------------------------ Define functions ------------------------ #
@@ -253,46 +254,85 @@ def parallel_capture_screenshots(urls, driver_options, folder, viewport):
 # Function to compare two images
 def compare_images(image1_path, image2_path):
     try:
-        image1 = Image.open(image1_path).convert('RGB')
-        image2 = Image.open(image2_path).convert('RGB')
+        # Read images
+        image1 = cv2.imread(image1_path)
+        image2 = cv2.imread(image2_path)
 
-        # Ensure images are the same size
-        if image1.size != image2.size:
-            print(f"\033[93mImage size differs: {image1_path}\033[0m")
-            print(f"\033[91mDifference found in images: {image1_path}\033[0m")
-            return False
+        # Check if images have the same dimensions
+        if image1.shape == image2.shape:
+            # Use SSIM method
+            gray1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
+            gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
 
-        # Compute the difference
-        diff = ImageChops.difference(image1, image2)
+            (score, diff) = structural_similarity(gray1, gray2, full=True)
+            print(f"SSIM: {score:.4f}")
 
-        # Check for any non-zero pixel value
-        diff_stat = diff.getbbox()
-        if diff_stat:
-            print(f"\033[91mDifference found in images: {image1_path}\033[0m")
-            return False
+            diff = (diff * 255).astype("uint8")
+            thresh = cv2.threshold(diff, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+            contours = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours = contours[0] if len(contours) == 2 else contours[1]
+
+            image_with_differences = image1.copy()
+
+            for c in contours:
+                area = cv2.contourArea(c)
+                if area > 40:  # Adjust this threshold as needed
+                    x, y, w, h = cv2.boundingRect(c)
+                    cv2.rectangle(image_with_differences, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            method = "SSIM"
+            threshold = 0.95  # Adjust this threshold as needed
+
         else:
-            return True
+            # Use cv2.absdiff method
+            print("Image dimensions do not match. Using cv2.absdiff method.")
+            
+            # Resize image2 to match image1's dimensions
+            image2 = cv2.resize(image2, (image1.shape[1], image1.shape[0]))
+            
+            gray1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
+            gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
+
+            diff = cv2.absdiff(gray1, gray2)
+            image_with_differences = 255 - diff
+            
+            # Calculate a simple similarity score based on mean pixel difference
+            score = 1 - (np.mean(diff) / 255)
+            print(f"Similarity score: {score:.4f}")
+
+            method = "absdiff"
+            threshold = 0.8  # Adjust this threshold as needed
+
+        # Save the image with differences highlighted
+        difference_image_path = image1_path.replace('.png', f'_diff_{method}.png')
+        cv2.imwrite(difference_image_path, image_with_differences)
+
+        if score < threshold:
+            print(f"\033[91mDifference found in images: {image1_path}\033[0m")
+            print(f"Difference image saved as: {difference_image_path}")
+            return False, difference_image_path, method, score
+        else:
+            return True, None, method, score
 
     except Exception as e:
         print(f"\033[91mError comparing images:\033[0m {e}")
-        return False
+        return False, None, "error", 0
 
-# Function to compare screenshots in initial and secondary folders
+# Update the compare_screenshots function to handle the new return values
 def compare_screenshots(initial_folder, secondary_folder, subfolder):
     initial_subfolder = os.path.join(initial_folder, subfolder)
     secondary_subfolder = os.path.join(secondary_folder, subfolder)
     initial_files = set(os.listdir(initial_subfolder))
     secondary_files = set(os.listdir(secondary_subfolder))
 
-    # Only compare files that are present in both folders
     common_files = initial_files.intersection(secondary_files)
 
     non_matching_files = []
     for file_name in common_files:
         initial_path = os.path.join(initial_subfolder, file_name)
         secondary_path = os.path.join(secondary_subfolder, file_name)
-        #print(f"Comparing: {initial_path} with {secondary_path}")
-        if not compare_images(initial_path, secondary_path):
-            non_matching_files.append(f"{subfolder}: {file_name}")
+        match, diff_path, method, score = compare_images(initial_path, secondary_path)
+        if not match:
+            non_matching_files.append((f"{subfolder}: {file_name}", diff_path, method, score))
 
     return non_matching_files
